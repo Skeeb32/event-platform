@@ -1,0 +1,58 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("ATTENDEE") // ADMIN or ATTENDEE
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  location    String
+  date        DateTime
+  organizerId String
+  createdAt   DateTime @default(now())
+  
+  ticketTiers TicketTier[]
+  orders      Order[]
+}
+
+model TicketTier {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String   // e.g. "General Admission", "VIP"
+  price       Float    // Price in standard currency units
+  capacity    Int
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orders      Order[]
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  userId          String
+  eventId         String
+  ticketTierId    String
+  quantity        Int
+  totalAmount     Float
+  status          String   @default("PENDING") // PENDING, PAID, REFUNDED
+  stripeSessionId String?
+  qrCodeUrl       String?
+  createdAt       DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id])
+  event      Event      @relation(fields: [eventId], references: [id])
+  ticketTier TicketTier @relation(fields: [ticketTierId], references: [id])
+}
